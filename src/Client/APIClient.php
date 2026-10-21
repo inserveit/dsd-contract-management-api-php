@@ -107,7 +107,7 @@ final class APIClient
 
         try {
             return $this->decodeObject($body);
-        } catch (JsonException $exception) {
+        } catch (JsonException|UnexpectedValueException $exception) {
             throw new DSDContractManagementAPIException(
                 'DSD API returned an invalid JSON object.',
                 $status,
