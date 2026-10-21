@@ -1,0 +1,36 @@
+{
+    "name": "inserve/dsd-contract-management-api-php",
+    "description": "A PHP client for the DSD Contract Management API",
+    "type": "library",
+    "require": {
+        "php": "^8.4",
+        "guzzlehttp/guzzle": "^7.7",
+        "guzzlehttp/psr7": "^2.6",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.0",
+        "psr/log": "^3.0",
+        "symfony/serializer": "^6.4 || ^7.0 || ^8.0",
+        "symfony/property-access": "^6.4 || ^7.0 || ^8.0",
+        "symfony/property-info": "^6.4 || ^7.0 || ^8.0",
+        "phpdocumentor/reflection-docblock": "^5.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^13",
+        "illuminate/support": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/config": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/container": "^11.0 || ^12.0 || ^13.0",
+        "vlucas/phpdotenv": "^5.6",
+        "phpstan/phpstan": "^2.3",
+        "vimeo/psalm": "^6.20",
+        "squizlabs/php_codesniffer": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {"Inserve\\DSDContractManagementAPI\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Inserve\\DSDContractManagementAPI\\Tests\\": "tests/"}
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}

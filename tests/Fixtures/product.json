@@ -1,0 +1,20 @@
+{
+  "sku": "DSDPRD1",
+  "name": "Microsoft Product(plan 1)",
+  "brand": null,
+  "ean": null,
+  "productType": null,
+  "prices": [
+    {
+      "unit": "Users",
+      "commitmentTerm": "one_year",
+      "invoicingPeriod": "one_month",
+      "currency": "EUR",
+      "advisoryPrice": 12.5,
+      "discountPercentage": 16,
+      "price": 10.5,
+      "min": null,
+      "max": null
+    }
+  ]
+}

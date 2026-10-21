@@ -1,0 +1,50 @@
+{
+  "id": 1,
+  "account": {
+    "id": 1,
+    "username": "Example",
+    "isSubaccount": true
+  },
+  "client": {
+    "id": 7,
+    "company": "Example BV",
+    "cocIdentifier": "12345678"
+  },
+  "status": "active",
+  "saleReference": null,
+  "activationDate": null,
+  "commitmentEndDate": null,
+  "renewalDate": null,
+  "commitmentTerm": null,
+  "invoicingPeriod": "one_time",
+  "created": "2026-01-01T00:00:00Z",
+  "updated": null,
+  "items": [
+    {
+      "subscriptionId": null,
+      "type": "normal",
+      "status": "pending",
+      "product": {
+        "sku": "DSDPRD1",
+        "name": "Microsoft Product(plan 1)",
+        "brand": null,
+        "ean": null,
+        "productType": null,
+        "prices": [
+          {
+            "unit": "Users",
+            "currency": "EUR",
+            "advisoryPrice": 12.5,
+            "discountPercentage": 16,
+            "price": 10.5,
+            "quantity": 3
+          }
+        ]
+      }
+    }
+  ],
+  "totals": {
+    "totalPrice": 29.43,
+    "currency": "EUR"
+  }
+}

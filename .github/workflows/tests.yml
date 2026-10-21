@@ -1,0 +1,27 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - php: '8.4'
+            laravel: '13'
+            symfony: '8'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - run: composer require --dev --no-update "illuminate/support:^${{ matrix.laravel }}.0" "illuminate/config:^${{ matrix.laravel }}.0" "illuminate/container:^${{ matrix.laravel }}.0"
+      - run: composer require --no-update "symfony/serializer:^${{ matrix.symfony }}" "symfony/property-access:^${{ matrix.symfony }}" "symfony/property-info:^${{ matrix.symfony }}"
+      - run: composer update --no-interaction --prefer-dist
+      - run: composer validate
+      - run: composer test
+      - run: ./vendor/bin/phpcs src tests -v --standard=PSR2
+      - run: ./vendor/bin/phpstan analyse --level=5 src tests
+      - run: ./vendor/bin/psalm --show-info=true
