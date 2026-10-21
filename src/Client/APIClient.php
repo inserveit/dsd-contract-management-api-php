@@ -144,7 +144,7 @@ final class APIClient
 
     /**
      * @return array<string, mixed>
-     * @throws JsonException
+     * @throws JsonException|UnexpectedValueException
      */
     private function decodeObject(string $body): array
     {
