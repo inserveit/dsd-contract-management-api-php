@@ -7,9 +7,11 @@ namespace Inserve\DSDContractManagementAPI;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
 use Inserve\DSDContractManagementAPI\API\ContractAPI;
+use Inserve\DSDContractManagementAPI\API\EndClientAPI;
 use Inserve\DSDContractManagementAPI\API\ProductAPI;
 use Inserve\DSDContractManagementAPI\Client\APIClient;
 use Inserve\DSDContractManagementAPI\Contracts\ContractsInterface;
+use Inserve\DSDContractManagementAPI\Contracts\EndClientsInterface;
 use Inserve\DSDContractManagementAPI\Contracts\ProductsInterface;
 use Inserve\DSDContractManagementAPI\Serialization\SerializerFactory;
 use InvalidArgumentException;
@@ -20,6 +22,9 @@ final class DSDContractManagementAPIClient
 {
     public const string DEFAULT_BASE_URI = APIClient::DEFAULT_BASE_URI;
 
+    public const string DEFAULT_END_CLIENT_BASE_URI = APIClient::DEFAULT_END_CLIENT_BASE_URI;
+
+    private readonly EndClientsInterface $endClients;
     private readonly ContractsInterface $contracts;
     private readonly ProductsInterface $products;
 
@@ -30,6 +35,7 @@ final class DSDContractManagementAPIClient
     {
         $this->contracts = new ContractAPI($apiClient);
         $this->products = new ProductAPI($apiClient);
+        $this->endClients = new EndClientAPI($apiClient);
     }
 
     /**
@@ -37,6 +43,7 @@ final class DSDContractManagementAPIClient
      * @param LoggerInterface|null $logger
      * @param string               $baseUri
      * @param float                $timeout
+     * @param string               $endClientBaseUri
      *
      * @return self
      */
@@ -45,6 +52,7 @@ final class DSDContractManagementAPIClient
         ?LoggerInterface $logger = null,
         string $baseUri = self::DEFAULT_BASE_URI,
         float $timeout = 30.0,
+        string $endClientBaseUri = self::DEFAULT_END_CLIENT_BASE_URI,
     ): self {
         if ($timeout <= 0 || !is_finite($timeout)) {
             throw new InvalidArgumentException('Timeout must be a finite positive number.');
@@ -57,6 +65,7 @@ final class DSDContractManagementAPIClient
             denormalizer: SerializerFactory::create(),
             logger: $logger,
             baseUri: $baseUri,
+            endClientBaseUri: $endClientBaseUri,
         ));
     }
 
@@ -74,6 +83,14 @@ final class DSDContractManagementAPIClient
     public function products(): ProductsInterface
     {
         return $this->products;
+    }
+
+    /**
+     * @return EndClientsInterface
+     */
+    public function endClients(): EndClientsInterface
+    {
+        return $this->endClients;
     }
 
     /**

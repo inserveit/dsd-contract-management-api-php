@@ -16,7 +16,9 @@ final readonly class PaginatedProducts
     ) {
     }
 
-    /** @return list<ProductCatalogue> */
+    /**
+     * @return ProductCatalogue[]
+     */
     public function getResult(): array
     {
         return $this->result;

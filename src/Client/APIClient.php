@@ -20,7 +20,10 @@ final class APIClient
 {
     public const string DEFAULT_BASE_URI = 'https://contract-management-api.dsdeurope.com';
 
+    public const string DEFAULT_END_CLIENT_BASE_URI = 'https://end-client-api.dsdeurope.com';
+
     private readonly string $baseUri;
+    private readonly string $endClientBaseUri;
 
     /**
      * @param ClientInterface         $client
@@ -29,6 +32,7 @@ final class APIClient
      * @param DenormalizerInterface   $denormalizer
      * @param LoggerInterface|null    $logger
      * @param string                  $baseUri
+     * @param string                  $endClientBaseUri
      */
     public function __construct(
         private readonly ClientInterface $client,
@@ -37,8 +41,20 @@ final class APIClient
         private readonly DenormalizerInterface $denormalizer,
         private readonly ?LoggerInterface $logger = null,
         string $baseUri = self::DEFAULT_BASE_URI,
+        string $endClientBaseUri = self::DEFAULT_END_CLIENT_BASE_URI,
     ) {
         $this->setAccessToken($accessToken);
+        $this->baseUri = $this->validateBaseUri($baseUri);
+        $this->endClientBaseUri = $this->validateBaseUri($endClientBaseUri);
+    }
+
+    /**
+     * @param string $baseUri
+     *
+     * @return string
+     */
+    private function validateBaseUri(string $baseUri): string
+    {
         $parts = parse_url($baseUri);
         if ($parts === false || !isset($parts['host']) ||
             !in_array($parts['scheme'] ?? '', ['http', 'https'], true) ||
@@ -48,7 +64,7 @@ final class APIClient
                 'Base URI must be an HTTP(S) origin without a path, credentials, query, or fragment.'
             );
         }
-        $this->baseUri = rtrim($baseUri, '/');
+        return rtrim($baseUri, '/');
     }
 
     /**
@@ -65,10 +81,38 @@ final class APIClient
         $this->accessToken = $accessToken;
     }
 
-    /** @param array<string, mixed> $query @return array<string, mixed> */
+    /**
+     * @param string $path
+     * @param array  $query
+     *
+     * @return array
+     */
     public function get(string $path, array $query = []): array
     {
-        $url = $this->baseUri . '/v1/' . ltrim($path, '/');
+        return $this->getFromBaseUri($this->baseUri, $path, $query);
+    }
+
+    /**
+     * @param string $path
+     * @param array  $query
+     *
+     * @return array
+     */
+    public function getEndClients(string $path, array $query = []): array
+    {
+        return $this->getFromBaseUri($this->endClientBaseUri, $path, $query);
+    }
+
+    /**
+     * @param string $baseUri
+     * @param string $path
+     * @param array  $query
+     *
+     * @return array
+     */
+    private function getFromBaseUri(string $baseUri, string $path, array $query): array
+    {
+        $url = $baseUri . '/v1/' . ltrim($path, '/');
         if ($query !== []) {
             $url .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
         }

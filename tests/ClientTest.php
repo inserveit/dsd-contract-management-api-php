@@ -19,6 +19,8 @@ use GuzzleHttp\Psr7\Response;
 use Inserve\DSDContractManagementAPI\DSDContractManagementAPIClient;
 use Inserve\DSDContractManagementAPI\Exception\DSDContractManagementAPIException;
 use Inserve\DSDContractManagementAPI\Options\ContractFilters;
+use Inserve\DSDContractManagementAPI\Options\EndClientFilters;
+use Inserve\DSDContractManagementAPI\Contracts\EndClientsInterface;
 use JsonException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\Exception;
@@ -99,6 +101,7 @@ final class ClientTest extends TestCase
 
         self::assertInstanceOf(ContractsInterface::class, $client->contracts());
         self::assertInstanceOf(ProductsInterface::class, $client->products());
+        self::assertInstanceOf(EndClientsInterface::class, $client->endClients());
     }
 
     /**
@@ -167,14 +170,16 @@ final class ClientTest extends TestCase
      * @return void
      * @throws JsonException
      */
-    public function testTokenUpdatesReachBothExistingResources(): void
+    public function testTokenUpdatesReachAllExistingResources(): void
     {
-        $client = $this->client([$this->page([], 0, 0), $this->page([], 0, 0)]);
+        $client = $this->client([$this->page([], 0, 0), $this->page([], 0, 0), $this->page([], 0, 0)]);
         $contracts = $client->contracts();
         $products = $client->products();
+        $endClients = $client->endClients();
         $client->setAccessToken('new-token');
         $contracts->list();
         $products->list();
+        $endClients->list();
 
         foreach ($this->history as $transaction) {
             self::assertSame('Bearer new-token', $transaction['request']->getHeaderLine('Authorization'));
@@ -339,6 +344,162 @@ final class ClientTest extends TestCase
     }
 
     /**
+     * @return void
+     * @throws JsonException
+     */
+    public function testEndClientDetailsUseSeparateOriginAndDirectResponse(): void
+    {
+        $data = $this->fixture('end-client');
+        $client = $this->client([$this->response($data), $this->page([], 0, 0)]);
+        $endClient = $client->endClients()->get(7);
+        $client->contracts()->list();
+
+        self::assertSame($client->endClients(), $client->endClients());
+        self::assertSame(7, $endClient->getId());
+        self::assertSame(7, $endClient->getUserId());
+        self::assertFalse($endClient->getActive());
+        self::assertNull($endClient->getFirstName());
+        self::assertSame('Example BV', $endClient->getCompany());
+        self::assertSame($data['numberCoc'], $endClient->getNumberCoc());
+        self::assertSame($data['updated'], $endClient->getUpdated());
+        $request = $this->history[0]['request'];
+        self::assertSame('https://end-client-api.dsdeurope.com/v1/end-clients/7', (string) $request->getUri());
+        self::assertSame('Bearer test-token', $request->getHeaderLine('Authorization'));
+        self::assertSame('application/json', $request->getHeaderLine('Accept'));
+        self::assertSame('contract-management-api.dsdeurope.com', $this->history[1]['request']->getUri()->getHost());
+    }
+
+    /**
+     * @return void
+     * @throws JsonException
+     */
+    public function testEndClientListHydratesModelsAndPreservesEveryFilter(): void
+    {
+        $client = $this->client([$this->page([$this->fixture('end-client')], 10, 30)]);
+        $filters = new EndClientFilters(
+            active: false,
+            name: 'Client & Co',
+            firstName: 'John',
+            lastName: 'Doe',
+            company: 'Example BV',
+            postalCode: '1234 AB',
+            city: 'Amsterdam',
+            country: 'NL',
+            phone: '+31 123456789',
+            email: 'john+dsd@example.com',
+            numberCoc: '12345678',
+            numberVat: 'NL123456789B01',
+        );
+        $page = $client->endClients()->list(offset: 10, limit: 5, filters: $filters);
+        parse_str($this->history[0]['request']->getUri()->getQuery(), $query);
+
+        self::assertSame(['offset' => '10', 'limit' => '5'] + $filters->toQuery(), $query);
+        self::assertSame('end-client-api.dsdeurope.com', $this->history[0]['request']->getUri()->getHost());
+        self::assertSame('/v1/end-clients', $this->history[0]['request']->getUri()->getPath());
+        self::assertSame(7, $page->getResult()[0]->getId());
+        self::assertSame(10, $page->getPagination()->getOffset());
+        self::assertSame(1, $page->getPagination()->getResultCount());
+        self::assertSame(30, $page->getPagination()->getTotalCount());
+        self::assertSame([], (new EndClientFilters())->toQuery());
+        self::assertSame(['active' => 'true'], (new EndClientFilters(active: true))->toQuery());
+    }
+
+    /**
+     * @return void
+     * @throws JsonException
+     */
+    public function testEndClientIteratorIsLazyAndKeepsFiltersAcrossPages(): void
+    {
+        $first = $this->fixture('end-client');
+        $second = array_replace($first, ['id' => 8]);
+        $client = $this->client([$this->page([$first], 0, 2), $this->page([$second], 1, 2)]);
+        $iterator = $client->endClients()->all(new EndClientFilters(active: false), limit: 1);
+        self::assertCount(0, $this->history);
+        self::assertSame([7, 8], array_map(fn ($c) => $c->getId(), iterator_to_array($iterator)));
+        foreach ($this->history as $index => $transaction) {
+            parse_str($transaction['request']->getUri()->getQuery(), $query);
+            self::assertSame((string) $index, $query['offset']);
+            self::assertSame('1', $query['limit']);
+            self::assertSame('false', $query['active']);
+        }
+    }
+
+    /**
+     * @return void
+     * @throws JsonException
+     */
+    public function testEndClientEmptyPageStopsIterator(): void
+    {
+        $client = $this->client([$this->page([], 0, 100)]);
+        self::assertSame([], iterator_to_array($client->endClients()->all()));
+        self::assertCount(1, $this->history);
+    }
+
+    /**
+     * @return void
+     * @throws JsonException
+     */
+    public function testEndClientOriginCanBeConfiguredIndependently(): void
+    {
+        $stack = HandlerStack::create(new MockHandler([
+            $this->page([], 0, 0), $this->page([], 0, 0), $this->page([], 0, 0),
+        ]));
+        $stack->push(Middleware::history($this->history));
+        $client = new DSDContractManagementAPIClient(new APIClient(
+            client: new Client(['handler' => $stack]),
+            requestFactory: new HttpFactory(),
+            accessToken: 'token',
+            denormalizer: SerializerFactory::create(),
+            baseUri: 'https://contracts.example:8443/',
+            endClientBaseUri: 'https://clients.example:9443/',
+        ));
+        $client->contracts()->list();
+        $client->products()->list();
+        $client->endClients()->list();
+
+        self::assertSame(
+            'https://contracts.example:8443/v1/contracts?offset=0&limit=20',
+            (string) $this->history[0]['request']->getUri()
+        );
+        self::assertSame(
+            'https://contracts.example:8443/v1/products?offset=0&limit=20',
+            (string) $this->history[1]['request']->getUri()
+        );
+        self::assertSame(
+            'https://clients.example:9443/v1/end-clients?offset=0&limit=20',
+            (string) $this->history[2]['request']->getUri()
+        );
+    }
+
+    /**
+     * @return void
+     */
+    public function testEndClientNotFoundUsesExistingErrorHandling(): void
+    {
+        $client = $this->client([new Response(404, [], json_encode([
+            'title' => 'Client not found', 'status' => 404, 'detail' => 'Unknown client ID',
+        ]))]);
+        try {
+            $client->endClients()->get(7);
+            self::fail('Expected API exception.');
+        } catch (DSDContractManagementAPIException $exception) {
+            self::assertSame(404, $exception->getStatusCode());
+            self::assertSame('Unknown client ID', $exception->getErrorResponse()->getDetail());
+        }
+    }
+
+    /**
+     * @return void
+     * @throws JsonException
+     */
+    public function testMalformedEndClientDetailsThrowPackageException(): void
+    {
+        $client = $this->client([$this->response(['id' => 7])]);
+        $this->expectException(DSDContractManagementAPIException::class);
+        $client->endClients()->get(7);
+    }
+
+    /**
      * @return iterable
      */
     public static function errorResponses(): iterable
@@ -467,6 +628,14 @@ final class ClientTest extends TestCase
         yield 'low limit' => [static fn ($c) => $c->products()->list(limit: 0)];
         yield 'high limit' => [static fn ($c) => $c->contracts()->list(limit: 101)];
         yield 'contract ID' => [static fn ($c) => $c->contracts()->get(0)];
+        yield 'end client ID' => [static fn ($c) => $c->endClients()->get(0)];
+        yield 'end client offset' => [static fn ($c) => $c->endClients()->list(offset: -1)];
+        yield 'end client low limit' => [static fn ($c) => $c->endClients()->list(limit: 0)];
+        yield 'end client high limit' => [static fn ($c) => $c->endClients()->list(limit: 101)];
+        yield 'end client base URI path' => [static fn () => DSDContractManagementAPIClient::create(
+            'token',
+            endClientBaseUri: 'https://example.test/v1'
+        )];
         yield 'blank SKU' => [static fn ($c) => $c->products()->get('')];
     }
 

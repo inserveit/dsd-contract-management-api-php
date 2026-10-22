@@ -16,7 +16,9 @@ final readonly class PaginatedContracts
     ) {
     }
 
-    /** @return list<Contract> */
+    /**
+     * @return Contract[]
+     */
     public function getResult(): array
     {
         return $this->result;

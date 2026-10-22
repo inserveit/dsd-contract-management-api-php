@@ -1,0 +1,22 @@
+{
+    "id": 7,
+    "userId": 7,
+    "active": false,
+    "name": "name value",
+    "firstName": null,
+    "lastName": "lastName value",
+    "company": "Example BV",
+    "address": "address value",
+    "houseNr": "houseNr value",
+    "postalCode": "postalCode value",
+    "city": "city value",
+    "country": "country value",
+    "province": "province value",
+    "phone": "phone value",
+    "email": "email value",
+    "website": "website value",
+    "numberCoc": "numberCoc value",
+    "numberVat": "numberVat value",
+    "created": "2026-10-01T12:00:00+00:00",
+    "updated": "2026-10-22T08:00:00+00:00"
+}
