@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace Inserve\DSDContractManagementAPI\Models;
 
+use Inserve\DSDContractManagementAPI\Enums\ContractStatus;
+
 final readonly class ContractItem
 {
     /**
      * @param string          $type
-     * @param string          $status
+     * @param ContractStatus  $status
      * @param ProductContract $product
      * @param string|null     $subscriptionId
      */
     public function __construct(
         public string          $type,
-        public string          $status,
+        public ContractStatus  $status,
         public ProductContract $product,
         public ?string         $subscriptionId = null,
     ) {
@@ -37,9 +39,9 @@ final readonly class ContractItem
     }
 
     /**
-     * @return string
+     * @return ContractStatus
      */
-    public function getStatus(): string
+    public function getStatus(): ContractStatus
     {
         return $this->status;
     }

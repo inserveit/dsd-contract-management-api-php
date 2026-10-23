@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Inserve\DSDContractManagementAPI\Options;
 
+use Inserve\DSDContractManagementAPI\Enums\ContractStatus;
 use InvalidArgumentException;
 
 final readonly class ContractFilters
 {
     /**
-     * @param string|null $status
+     * @param ContractStatus|string|null $status
      * @param int|null    $clientId
      * @param bool|null   $ownUse
      * @param string|null $saleReference
@@ -24,7 +25,7 @@ final readonly class ContractFilters
      * @param string|null $sku
      */
     public function __construct(
-        public ?string $status = null,
+        public ContractStatus|string|null $status = null,
         public ?int    $clientId = null,
         public ?bool   $ownUse = null,
         public ?string $saleReference = null,
@@ -44,7 +45,7 @@ final readonly class ContractFilters
         if ($clientId !== null && $ownUse === true) {
             throw new InvalidArgumentException('clientId cannot be combined with ownUse=true.');
         }
-        if ($status !== null && !in_array($status, ['pending', 'active', 'canceled', 'ended', 'deleted'], true)) {
+        if (is_string($status) && ContractStatus::tryFrom($status) === null) {
             throw new InvalidArgumentException('Invalid contract status.');
         }
     }
@@ -56,9 +57,15 @@ final readonly class ContractFilters
      */
     public function toQuery(): array
     {
-        $query = array_filter(get_object_vars($this), static fn (mixed $value): bool => $value !== null);
-        if ($this->ownUse !== null) {
-            $query['ownUse'] = $this->ownUse ? 'true' : 'false';
+        $query = [];
+        foreach (get_object_vars($this) as $key => $value) {
+            if ($value !== null) {
+                $query[$key] = match (true) {
+                    $value instanceof ContractStatus => $value->value,
+                    is_bool($value) => $value ? 'true' : 'false',
+                    default => $value,
+                };
+            }
         }
 
         return $query;

@@ -4,27 +4,31 @@ declare(strict_types=1);
 
 namespace Inserve\DSDContractManagementAPI\Models;
 
+use Inserve\DSDContractManagementAPI\Enums\CommitmentTerm;
+use Inserve\DSDContractManagementAPI\Enums\ContractStatus;
+use Inserve\DSDContractManagementAPI\Enums\InvoicingPeriod;
+
 final readonly class Contract
 {
     /**
      * @param list<ContractItem> $items
      */
     public function __construct(
-        public int            $id,
-        public Account        $account,
-        public string         $status,
-        public string         $invoicingPeriod,
-        public string         $created,
+        public int             $id,
+        public Account         $account,
+        public ContractStatus  $status,
+        public InvoicingPeriod $invoicingPeriod,
+        public string          $created,
         /** @var list<ContractItem> */
-        public array          $items,
-        public ContractTotals $totals,
-        public ?Client        $client = null,
-        public ?string        $saleReference = null,
-        public ?string        $activationDate = null,
-        public ?string        $commitmentEndDate = null,
-        public ?string        $renewalDate = null,
-        public ?string        $commitmentTerm = null,
-        public ?string        $updated = null,
+        public array           $items,
+        public ContractTotals  $totals,
+        public ?Client         $client = null,
+        public ?string         $saleReference = null,
+        public ?string         $activationDate = null,
+        public ?string         $commitmentEndDate = null,
+        public ?string         $renewalDate = null,
+        public ?CommitmentTerm $commitmentTerm = null,
+        public ?string         $updated = null,
     ) {
     }
 
@@ -53,9 +57,9 @@ final readonly class Contract
     }
 
     /**
-     * @return string
+     * @return ContractStatus
      */
-    public function getStatus(): string
+    public function getStatus(): ContractStatus
     {
         return $this->status;
     }
@@ -93,17 +97,17 @@ final readonly class Contract
     }
 
     /**
-     * @return string|null
+     * @return CommitmentTerm|null
      */
-    public function getCommitmentTerm(): ?string
+    public function getCommitmentTerm(): ?CommitmentTerm
     {
         return $this->commitmentTerm;
     }
 
     /**
-     * @return string
+     * @return InvoicingPeriod
      */
-    public function getInvoicingPeriod(): string
+    public function getInvoicingPeriod(): InvoicingPeriod
     {
         return $this->invoicingPeriod;
     }

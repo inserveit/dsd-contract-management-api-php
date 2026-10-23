@@ -6,6 +6,10 @@ namespace Inserve\DSDContractManagementAPI\Tests;
 
 use GuzzleHttp\Psr7\HttpFactory;
 use Inserve\DSDContractManagementAPI\Client\APIClient;
+use Inserve\DSDContractManagementAPI\Enums\CommitmentTerm;
+use Inserve\DSDContractManagementAPI\Enums\ContractStatus;
+use Inserve\DSDContractManagementAPI\Enums\InvoicingPeriod;
+use Inserve\DSDContractManagementAPI\Options\ContractFilters;
 use Inserve\DSDContractManagementAPI\Exception\DSDContractManagementAPIException;
 use Inserve\DSDContractManagementAPI\Models\Account;
 use Inserve\DSDContractManagementAPI\Models\Contract;
@@ -16,6 +20,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientInterface;
+use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
@@ -83,11 +88,107 @@ final class SerializationTest extends TestCase
     }
 
     /**
+     * @return void
+     * @throws Exception
+     * @throws JsonException
+     * @throws ExceptionInterface
+     */
+    public function testContractEnumsDeserializeAndSerializeAsApiValues(): void
+    {
+        $data = self::contract();
+        $data['commitmentTerm'] = 'one_year';
+        $serializer = SerializerFactory::create();
+        $contract = $this->transport($serializer)->denormalize($data, Contract::class);
+
+        self::assertSame(ContractStatus::Active, $contract->getStatus());
+        self::assertSame(ContractStatus::Pending, $contract->getItems()[0]->getStatus());
+        self::assertSame(CommitmentTerm::OneYear, $contract->getCommitmentTerm());
+        self::assertSame(InvoicingPeriod::OneTime, $contract->getInvoicingPeriod());
+        $normalized = $serializer->normalize($contract, 'json');
+        self::assertSame('active', $normalized['status']);
+        self::assertSame('pending', $normalized['items'][0]['status']);
+        self::assertSame('one_year', $normalized['commitmentTerm']);
+        self::assertSame('one_time', $normalized['invoicingPeriod']);
+    }
+
+    /**
+     * @return void
+     * @throws Exception
+     * @throws JsonException
+     */
+    public function testAllDocumentedContractEnumValuesAreSupported(): void
+    {
+        $data = self::contract();
+        $transport = $this->transport();
+        foreach (['pending', 'active', 'canceled', 'ended', 'deleted'] as $status) {
+            $data['status'] = $status;
+            $data['items'][0]['status'] = $status;
+            $contract = $transport->denormalize($data, Contract::class);
+            self::assertSame(ContractStatus::from($status), $contract->getStatus());
+            self::assertSame(ContractStatus::from($status), $contract->getItems()[0]->getStatus());
+            self::assertSame(['status' => $status], (new ContractFilters(status: $status))->toQuery());
+            self::assertSame(
+                ['status' => $status],
+                (new ContractFilters(status: ContractStatus::from($status)))->toQuery()
+            );
+        }
+        foreach (['one_month', 'one_year', 'three_years'] as $term) {
+            $data['commitmentTerm'] = $term;
+            self::assertSame(
+                CommitmentTerm::from($term),
+                $transport->denormalize($data, Contract::class)->getCommitmentTerm()
+            );
+        }
+        foreach (['one_time', 'one_month', 'one_year', 'three_years'] as $period) {
+            $data['invoicingPeriod'] = $period;
+            self::assertSame(
+                InvoicingPeriod::from($period),
+                $transport->denormalize($data, Contract::class)->getInvoicingPeriod()
+            );
+        }
+    }
+
+    /**
+     * @return void
+     * @throws Exception
+     * @throws JsonException
+     */
+    public function testNullAndMissingCommitmentTermsRemainSupported(): void
+    {
+        $data = self::contract();
+        self::assertNull($this->transport()->denormalize($data, Contract::class)->getCommitmentTerm());
+        unset($data['commitmentTerm']);
+        self::assertNull($this->transport()->denormalize($data, Contract::class)->getCommitmentTerm());
+    }
+
+    /**
      * @return iterable
      * @throws JsonException
      */
     public static function malformedContracts(): iterable
     {
+        foreach (['status', 'commitmentTerm', 'invoicingPeriod'] as $field) {
+            $data = self::contract();
+            $data[$field] = 'unknown';
+            yield 'unknown ' . $field => [$data];
+        }
+
+        $data = self::contract();
+        $data['items'][0]['status'] = 'unknown';
+        yield 'unknown item status' => [$data];
+
+        $data = self::contract();
+        $data['status'] = null;
+        yield 'null required status' => [$data];
+
+        $data = self::contract();
+        $data['invoicingPeriod'] = null;
+        yield 'null required invoicing period' => [$data];
+
+        $data = self::contract();
+        $data['commitmentTerm'] = 'one_time';
+        yield 'invoicing-only value used as commitment term' => [$data];
+
         $data = self::contract();
         $data['account']['isSubaccount'] = 'false';
         yield 'string boolean' => [$data];

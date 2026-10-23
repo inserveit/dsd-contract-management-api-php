@@ -12,6 +12,7 @@ use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\HttpFactory;
 use Inserve\DSDContractManagementAPI\Client\APIClient;
+use Inserve\DSDContractManagementAPI\Enums\ContractStatus;
 use Inserve\DSDContractManagementAPI\Serialization\SerializerFactory;
 use Inserve\DSDContractManagementAPI\Contracts\ContractsInterface;
 use Inserve\DSDContractManagementAPI\Contracts\ProductsInterface;
@@ -266,7 +267,7 @@ final class ClientTest extends TestCase
     {
         $client = $this->client([$this->page([$this->fixture('contract')], 10, 30)]);
         $filters = new ContractFilters(
-            status: 'active',
+            status: ContractStatus::Active,
             clientId: 7,
             ownUse: false,
             saleReference: 'REF & 1',
